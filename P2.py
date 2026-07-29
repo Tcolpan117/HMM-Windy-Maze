@@ -37,19 +37,19 @@ DRIFT_RIGHT = 0.10
 
 
 def is_open(cell):
-    """Return True if the cell is inside the maze and is not an obstacle"""
+    """Returns true if the cell is inside the map and is not an obstacle"""
     return (0 <= cell[0] < ROWS) and (0 <= cell[1] < COLS) and (cell not in OBSTACLES)
 
 def get_neighbor(cell, direction):
-    """Return the neighboring cell in the selected direction"""
+    """Returns neighboring cell in direction"""
     return (cell[0] + DIRECTIONS[direction][0], cell[1] + DIRECTIONS[direction][1])
 
 def has_obstacle(cell, direction):
-    """Check whether an obstacle or maze boundary is in a direction"""
+    """Checks if it's an obstacle in direction"""
     return not is_open(get_neighbor(cell, direction))
 
 def sensor_probability(actual_obstacle, reading):
-    """Return the probability of one sensor reading"""
+    """Returns probability of one sensor reading"""
     if actual_obstacle:
         if reading == 1:
             return DETECT_OBSTACLE
@@ -62,8 +62,7 @@ def sensor_probability(actual_obstacle, reading):
     return DETECT_OPEN
 
 def evidence_probability(cell, evidence):
-    """Calculate the probability of receiving the complete sensor evidence
-    while the robot is in a particular cell"""
+    """Calculates the probability of receiving the complete sensor evidence"""
     probability = 1.0
     for i, reading in enumerate(evidence):
         actual_obstacle = has_obstacle(cell, i)
@@ -72,7 +71,7 @@ def evidence_probability(cell, evidence):
     return probability
 
 def filter_sensing(prior_belief, evidence):
-    """Update the location probabilities using sensor evidence"""
+    """Updates location probabilities using sensor evidence"""
     new_belief = {}
 
     for cell in prior_belief:
@@ -85,7 +84,7 @@ def filter_sensing(prior_belief, evidence):
     return new_belief
 
 def move(cell, direction):
-    """Move into the neighboring square if it is open. Otherwise, stay in the original square"""
+    """Moves into the neighboring square if it is open or stays in original square"""
     destination = get_neighbor(cell, direction)
     
     # Returns new or original square if blocked
@@ -95,7 +94,7 @@ def move(cell, direction):
     return cell
 
 def predict_moving(prior_belief, commanded_direction):
-    """Update probabilities using the windy movement model"""
+    """Updates probabilities using windy movement"""
     predicted_belief = defaultdict(float)
 
     left_direction = (commanded_direction - 1) % 4
@@ -115,7 +114,7 @@ def predict_moving(prior_belief, commanded_direction):
     return predicted_belief
 
 def print_map(belief):
-    """Print one probability grid as percentages"""
+    """Prints map with current location probabilities"""
     for row in range(ROWS):
         
         for col in range(COLS):
@@ -131,7 +130,7 @@ def print_map(belief):
 
 def main():
 
-    # Give open squares same initial probability
+    # Gives open squares same initial probability
     belief = {}
     probability = 1.0 / len(OPEN_CELLS)
 
