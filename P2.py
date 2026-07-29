@@ -48,7 +48,7 @@ def has_obstacle(cell, direction):
     """Check whether an obstacle or maze boundary is in a direction"""
     return not is_open(get_neighbor(cell, direction))
 
-def sensor_reading_probability(actual_obstacle, reading):
+def sensor_probability(actual_obstacle, reading):
     """Return the probability of one sensor reading"""
     if actual_obstacle:
         if reading == 1:
@@ -67,11 +67,11 @@ def evidence_probability(cell, evidence):
     probability = 1.0
     for i, reading in enumerate(evidence):
         actual_obstacle = has_obstacle(cell, i)
-        probability *= sensor_reading_probability(actual_obstacle, reading)
+        probability *= sensor_probability(actual_obstacle, reading)
 
     return probability
 
-def filter_after_sensing(prior_belief, evidence):
+def filter_sensing(prior_belief, evidence):
     """Update the location probabilities using sensor evidence"""
     new_belief = {}
 
@@ -87,13 +87,14 @@ def filter_after_sensing(prior_belief, evidence):
 def move(cell, direction):
     """Move into the neighboring square if it is open. Otherwise, stay in the original square"""
     destination = get_neighbor(cell, direction)
-
+    
+    # Returns new or original square if blocked
     if is_open(destination):
         return destination
 
     return cell
 
-def predict_after_moving(prior_belief, commanded_direction):
+def predict_moving(prior_belief, commanded_direction):
     """Update probabilities using the windy movement model"""
     predicted_belief = defaultdict(float)
 
@@ -108,9 +109,6 @@ def predict_after_moving(prior_belief, commanded_direction):
 
     for direction, probability in movements:
         for cell in prior_belief:
-
-            # move() returns the new square or the original square
-            # when the movement is blocked
             destination = move(cell, direction)
 
             predicted_belief[destination] += (prior_belief[cell] * probability)
@@ -133,7 +131,7 @@ def print_map(belief):
 
 def main():
 
-    # Give every open square the same starting probability
+    # Give open squares same initial probability
     belief = {}
     probability = 1.0 / len(OPEN_CELLS)
 
@@ -152,31 +150,31 @@ def main():
     print_map(belief)
 
     print("Filtering after Evidence [0, 0, 0, 1]")
-    belief = filter_after_sensing(belief, [0, 0, 0, 1])
+    belief = filter_sensing(belief, [0, 0, 0, 1])
     print_map(belief)
 
     print("Prediction after Action N")
-    belief = predict_after_moving(belief, NORTH)
+    belief = predict_moving(belief, NORTH)
     print_map(belief)
 
     print("Filtering after Evidence [1, 0, 0, 0]")
-    belief = filter_after_sensing(belief, [1, 0, 0, 0])
+    belief = filter_sensing(belief, [1, 0, 0, 0])
     print_map(belief)
 
     print("Prediction after Action N")
-    belief = predict_after_moving(belief, NORTH)
+    belief = predict_moving(belief, NORTH)
     print_map(belief)
 
     print("Filtering after Evidence [1, 1, 0, 0]")
-    belief = filter_after_sensing(belief, [1, 1, 0, 0])
+    belief = filter_sensing(belief, [1, 1, 0, 0])
     print_map(belief)
 
     print("Prediction after Action E")
-    belief = predict_after_moving(belief, EAST)
+    belief = predict_moving(belief, EAST)
     print_map(belief)
 
     print("Filtering after Evidence [0, 1, 1, 0]")
-    belief = filter_after_sensing(belief, [0, 1, 1, 0])
+    belief = filter_sensing(belief, [0, 1, 1, 0])
     print_map(belief)
 
 main()
