@@ -43,22 +43,26 @@ def is_open(cell):
     """Return True if the cell is inside the maze and is not an obstacle."""
     return (0 <= cell[0] < ROWS) and (0 <= cell[1] < COLS) and (cell not in OBSTACLES)
 
-
 def get_neighbor(cell, direction):
     """Return the neighboring cell in the selected direction."""
     return (cell[0] + DIRECTIONS[direction][0], cell[1] + DIRECTIONS[direction][1])
-
 
 def has_obstacle(cell, direction):
     """Check whether an obstacle or maze boundary is in a direction."""
     return not is_open(get_neighbor(cell, direction))
 
-
 def sensor_reading_probability(actual_obstacle, reading):
     """Return the probability of one sensor reading."""
     if actual_obstacle:
-        return DETECT_OBSTACLE if reading else MISS_OBSTACLE
-    return DETECT_OPEN if reading else FALSE_OBSTACLE
+        if reading == 1:
+            return DETECT_OBSTACLE
+
+        return MISS_OBSTACLE
+
+    if reading == 1:
+        return FALSE_OBSTACLE
+
+    return DETECT_OPEN
 
 def evidence_probability(cell, evidence):
     """Calculate the probability of receiving the complete sensor evidence
@@ -89,19 +93,54 @@ def filter_after_sensing(prior_belief, evidence):
 
 def move(cell, direction):
     """Move into the neighboring square if it is open. Otherwise, stay in the original square."""
+    destination = get_neighbor(cell, direction)
+
+    if is_open(destination):
+
+        return destination
+
+    return cell
+
 
 def predict_after_moving(prior_belief, commanded_direction):
     """Update probabilities using the windy movement model."""
+    predicted_belief = defaultdict(float)
 
+    left_direction = (commanded_direction - 1) % 4
+    right_direction = (commanded_direction + 1) % 4
 
-def print_map(title, belief):
+    possible_movements = [
+        (commanded_direction, MOVE_STRAIGHT),
+        (left_direction, DRIFT_LEFT),
+        (right_direction, DRIFT_RIGHT)
+    ]
+
+    for direction, probability in possible_movements:
+        for cell in prior_belief:
+            # move() returns the new square or the original square
+            # when the movement is blocked
+            destination = move(cell, direction)
+
+            predicted_belief[destination] += (
+                prior_belief[cell] * probability
+            )
+
+    return predicted_belief
+
+def print_map(belief):
     """Print one probability grid as percentages."""
+    for row in range(ROWS):
+        
+        for col in range(COLS):
+            cell = (row, col)
 
+            if cell in OBSTACLES:
+                print("#####", end=" ")
+            else:
+                print(f"{belief[cell] * 100:5.2f}", end=" ")
 
-
-
-
-
+        print(" ")
+    print("\n")
 
 def main():
     """Give every open square the same starting probability."""
@@ -111,53 +150,27 @@ def main():
     for cell in OPEN_CELLS:
         belief[cell] = probability
 
-    print(belief)
+    print_map(belief)
 
-    # print_belief_grid(
-    #     "Initial Location Probabilities",
-    #     belief
-    # )
+    belief = filter_after_sensing(belief, [0, 0, 0, 1])
+    print_map(belief)
 
-    # belief = filter_after_sensing(belief, [0, 0, 0, 1])
-    # print_belief_grid(
-    #     "Filtering after Evidence [0, 0, 0, 1]",
-    #     belief
-    # )
+    belief = predict_after_moving(belief, NORTH)
+    print_map(belief)
 
-    # belief = predict_after_moving(belief, NORTH)
-    # print_belief_grid(
-    #     "Prediction after Action N",
-    #     belief
-    # )
+    belief = filter_after_sensing(belief, [1, 0, 0, 0])
+    print_map(belief)
 
-    # belief = filter_after_sensing(belief, [1, 0, 0, 0])
-    # print_belief_grid(
-    #     "Filtering after Evidence [1, 0, 0, 0]",
-    #     belief
-    # )
+    belief = predict_after_moving(belief, NORTH)
+    print_map(belief)
 
-    # belief = predict_after_moving(belief, NORTH)
-    # print_belief_grid(
-    #     "Prediction after Action N",
-    #     belief
-    # )
+    belief = filter_after_sensing(belief, [1, 1, 0, 0])
+    print_map(belief)
 
-    # belief = filter_after_sensing(belief, [1, 1, 0, 0])
-    # print_belief_grid(
-    #     "Filtering after Evidence [1, 1, 0, 0]",
-    #     belief
-    # )
+    belief = predict_after_moving(belief, EAST)
+    print_map(belief)
 
-    # belief = predict_after_moving(belief, EAST)
-    # print_belief_grid(
-    #     "Prediction after Action E",
-    #     belief
-    # )
-
-    # belief = filter_after_sensing(belief, [0, 1, 1, 0])
-    # print_belief_grid(
-    #     "Filtering after Evidence [0, 1, 1, 0]",
-    #     belief
-    # )
+    belief = filter_after_sensing(belief, [0, 1, 1, 0])
+    print_map(belief)
 
 main()
